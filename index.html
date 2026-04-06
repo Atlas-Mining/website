@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Mining Corp. — The AI Geologist</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --onyx: #0B0B09;
+  --charcoal: #141412;
+  --ore: #1E1E1B;
+  --ore2: #272724;
+  --copper: #B07D45;
+  --copper-lt: #D4A05A;
+  --copper-pale: #F0D9B0;
+  --gold: #C9A84C;
+  --gold-lt: #E8C96A;
+  --gold-glow: rgba(232,201,106,0.18);
+  --steel: #3A4F63;
+  --steel-lt: #7A95AA;
+  --parchment: #F4EFE4;
+  --cream: #FAF7F2;
+  --muted: #7A786F;
+  --muted-lt: #A09D95;
+  --serif: 'EB Garamond', 'Palatino Linotype', Georgia, serif;
+  --mono: 'Courier Prime', 'Courier New', monospace;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--serif); background: var(--onyx); color: var(--parchment); overflow-x: hidden; cursor: none; }
+
+/* ── CURSOR ── */
+.cur { position: fixed; width: 7px; height: 7px; background: var(--gold-lt); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); }
+.cur-ring { position: fixed; width: 30px; height: 30px; border: 1px solid rgba(201,168,76,0.45); border-radius: 50%; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .25s, height .25s, border-color .25s; }
+body:has(a:hover) .cur-ring, body:has(button:hover) .cur-ring { width: 44px; height: 44px; border-color: var(--gold-lt); }
+
+/* ── PROGRESS ── */
+.prog { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(to right, var(--copper), var(--gold-lt)); z-index: 200; width: 0; transition: width .1s; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px 56px;
+  background: rgba(11,11,9,0.82); backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(201,168,76,0.08);
+  transition: padding .35s, border-color .35s;
+}
+nav.scrolled { padding: 14px 56px; border-bottom-color: rgba(201,168,76,0.18); }
+.nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-logo-mark svg { width: 30px; height: 30px; }
+.nav-logo-text .name { font-family: var(--serif); font-size: 16px; letter-spacing: .08em; text-transform: uppercase; color: var(--parchment); line-height: 1; }
+.nav-logo-text .sub { font-family: var(--mono); font-size: 7.5px; letter-spacing: .4em; color: var(--copper); text-transform: uppercase; margin-top: 3px; }
+.nav-links { display: flex; gap: 36px; list-style: none; }
+.nav-links a { font-family: var(--mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted-lt); text-decoration: none; transition: color .2s; position: relative; }
+.nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 1px; background: var(--gold); transform: scaleX(0); transition: transform .3s; transform-origin: left; }
+.nav-links a:hover { color: var(--copper-pale); }
+.nav-links a:hover::after { transform: scaleX(1); }
+.nav-cta { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--gold-lt); border: 1px solid rgba(201,168,76,.38); padding: 10px 20px; text-decoration: none; transition: background .22s, border-color .22s, color .22s; }
+.nav-cta:hover { background: var(--gold); border-color: var(--gold); color: var(--onyx); }
+
+/* ══ HERO ══ */
+.hero { min-height: 100vh; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.hero-topo { position: absolute; inset: 0; opacity: .045; }
+.hero-topo svg { width: 100%; height: 100%; }
+.hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 72% 65%, rgba(201,168,76,.09) 0%, transparent 65%); z-index: 1; }
+.hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(201,168,76,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(201,168,76,.045) 1px, transparent 1px); background-size: 68px 68px; animation: grid-drift 35s linear infinite; }
+@keyframes grid-drift { 0% { background-position: 0 0,0 0; } 100% { background-position: 68px 68px,68px 68px; } }
+.hero-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--copper); z-index: 3; }
+.hero-inner { position: relative; z-index: 2; flex: 1; display: flex; align-items: center; padding: 110px 56px 60px; gap: 60px; }
+.hero-left { flex: 0 0 auto; max-width: 520px; }
+.hero-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+.eyebrow-dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+.eyebrow-line { width: 50px; height: 1px; background: rgba(201,168,76,.4); }
+.eyebrow-text { font-family: var(--mono); font-size: 9px; letter-spacing: .42em; text-transform: uppercase; color: var(--copper); }
+.hero-h1 { font-size: clamp(52px, 6.5vw, 96px); line-height: .92; letter-spacing: -.03em; font-weight: 400; margin-bottom: 32px; animation: fadeup .9s ease both; }
+.hero-h1 .row2 { display: block; padding-left: clamp(40px,5vw,80px); color: var(--gold-lt); font-style: italic; }
+.hero-h1 .row3 { display: block; color: rgba(244,239,228,.35); }
+.hero-sub { font-size: 16.5px; line-height: 1.75; color: var(--muted-lt); max-width: 440px; margin-bottom: 48px; animation: fadeup .9s .18s ease both; }
+.hero-sub strong { color: var(--copper-pale); font-weight: 400; }
+.hero-actions { display: flex; gap: 18px; align-items: center; animation: fadeup .9s .32s ease both; }
+.btn-gold { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--onyx); background: var(--gold-lt); padding: 15px 30px; text-decoration: none; position: relative; overflow: hidden; transition: color .25s; }
+.btn-gold::before { content: ''; position: absolute; inset: 0; background: var(--gold); transform: translateX(-101%); transition: transform .32s ease; }
+.btn-gold span, .btn-gold .arr { position: relative; z-index: 1; }
+.btn-gold:hover::before { transform: translateX(0); }
+.btn-gold .arr { transition: transform .2s; }
+.btn-gold:hover .arr { transform: translateX(4px); }
+.btn-ghost { font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted-lt); text-decoration: none; padding: 15px 0; border-bottom: 1px solid rgba(201,168,76,.2); transition: color .2s, border-color .2s; }
+.btn-ghost:hover { color: var(--copper-pale); border-color: var(--copper); }
+@keyframes fadeup { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── HERO MAP ── */
+.hero-map { flex: 1; position: relative; min-height: 420px; animation: fadeup .9s .08s ease both; }
+.map-canvas { width: 100%; height: 100%; min-height: 420px; position: relative; }
+.map-canvas svg { width: 100%; height: 100%; }
+@keyframes ring-expand { 0%{r:6;opacity:.7} 100%{r:22;opacity:0} }
+@keyframes ring-expand2 { 0%{r:4;opacity:.5} 100%{r:16;opacity:0} }
+.pulse-ring1 { animation: ring-expand 2.2s ease-out infinite; }
+.pulse-ring2 { animation: ring-expand 2.2s .7s ease-out infinite; }
+.pulse-ring3 { animation: ring-expand2 2s .3s ease-out infinite; }
+.pulse-core { animation: core-glow 2.2s ease-in-out infinite; }
+@keyframes core-glow { 0%,100%{opacity:.85;r:4} 50%{opacity:1;r:5.5} }
+.pulse-core-sm { animation: core-glow-sm 2.5s ease-in-out infinite; }
+@keyframes core-glow-sm { 0%,100%{opacity:.6;r:3} 50%{opacity:1;r:4} }
+
+/* hero ticker */
+.hero-ticker { position: relative; z-index: 2; border-top: 1px solid rgba(201,168,76,.12); padding: 16px 56px; display: flex; align-items: center; overflow: hidden; }
+.ticker-label { font-family: var(--mono); font-size: 8.5px; letter-spacing: .4em; text-transform: uppercase; color: var(--copper); white-space: nowrap; padding-right: 28px; border-right: 1px solid rgba(201,168,76,.18); margin-right: 28px; flex-shrink: 0; }
+.ticker-track { display: flex; animation: ticker 30s linear infinite; white-space: nowrap; }
+.ticker-item { font-family: var(--mono); font-size: 10.5px; color: var(--muted); padding: 0 36px; border-right: 1px solid rgba(201,168,76,.08); }
+.ticker-item .v { color: var(--gold-lt); margin-right: 6px; }
+@keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+/* ══ STATS BAND ══ */
+.stats-band { background: var(--ore); border-top: 1px solid rgba(201,168,76,.13); border-bottom: 1px solid rgba(201,168,76,.13); display: grid; grid-template-columns: repeat(4,1fr); }
+.stat { padding: 40px 36px; border-right: 1px solid rgba(201,168,76,.1); position: relative; overflow: hidden; transition: background .3s; }
+.stat:last-child { border-right: none; }
+.stat:hover { background: rgba(201,168,76,.03); }
+.stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold); transform: scaleX(0); transform-origin: left; transition: transform .5s ease; }
+.stat:hover::before { transform: scaleX(1); }
+.stat-num { font-size: clamp(36px,4vw,52px); line-height: 1; letter-spacing: -.03em; color: var(--parchment); }
+.stat-num sup { font-size: .45em; color: var(--gold-lt); vertical-align: super; }
+.stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); margin-top: 8px; line-height: 1.65; }
+
+/* ══ SECTION BASE ══ */
+section { padding: 90px 56px; }
+.sec-inner { max-width: 1180px; margin: 0 auto; }
+.sec-tag { display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 8.5px; letter-spacing: .45em; text-transform: uppercase; color: var(--copper); margin-bottom: 36px; }
+.sec-tag::before { content: ''; width: 18px; height: 1px; background: var(--copper); flex-shrink: 0; }
+.sec-h { font-size: clamp(34px,4vw,56px); line-height: 1.06; letter-spacing: -.025em; font-weight: 400; margin-bottom: 18px; }
+.sec-h em { color: var(--gold-lt); font-style: italic; }
+
+/* ══ PROBLEM SECTION ══ */
+.problem-section { background: var(--charcoal); }
+.problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+.problem-body { font-size: 16.5px; line-height: 1.75; color: var(--muted-lt); max-width: 480px; }
+.problem-body strong { color: var(--copper-pale); font-weight: 400; }
+.problem-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.p-card { background: var(--ore); padding: 28px 24px; position: relative; overflow: hidden; }
+.p-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--copper); }
+.p-card:nth-child(2)::before { background: var(--gold); }
+.p-card:nth-child(3)::before { background: var(--steel-lt); }
+.p-card:nth-child(4)::before { background: var(--copper-lt); }
+.pc-val { font-size: 36px; line-height: 1; letter-spacing: -.03em; color: var(--gold-lt); margin-bottom: 8px; }
+.pc-label { font-family: var(--mono); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); line-height: 1.65; }
+
+/* ══ HOW IT WORKS ══ */
+.neural-section { background: var(--onyx); }
+.neural-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 60px; align-items: center; }
+.neural-body { font-size: 16px; line-height: 1.75; color: var(--muted-lt); max-width: 480px; }
+.neural-body strong { color: var(--copper-pale); font-weight: 400; }
+.output-cards { margin-top: 36px; display: flex; flex-direction: column; gap: 2px; }
+.output-card { background: var(--ore); border-left: 3px solid var(--copper); padding: 20px 22px; transition: background .25s; cursor: default; }
+.output-card:hover { background: var(--ore2); }
+.output-card:nth-child(2) { border-left-color: var(--gold); }
+.output-card:nth-child(3) { border-left-color: var(--steel-lt); }
+.oc-num { font-family: var(--mono); font-size: 8px; letter-spacing: .35em; color: var(--copper); margin-bottom: 5px; }
+.oc-title { font-size: 17px; font-weight: 400; color: var(--parchment); margin-bottom: 4px; font-style: italic; }
+.oc-body { font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--muted); }
+.neural-canvas { position: relative; width: 100%; aspect-ratio: 1.05; }
+.neural-canvas canvas { width: 100%; height: 100%; }
+
+/* ══ DELIVERABLES ══ */
+.deliver-section { background: var(--charcoal); }
+.deliver-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 40px; }
+.d-card { background: var(--ore); padding: 28px 24px; border-top: 2px solid rgba(201,168,76,.2); transition: background .25s, border-color .3s; }
+.d-card:hover { background: var(--ore2); border-top-color: var(--gold); }
+.d-icon { font-family: var(--mono); font-size: 24px; color: var(--gold-lt); margin-bottom: 14px; opacity: .7; }
+.d-title { font-size: 18px; font-style: italic; color: var(--parchment); margin-bottom: 6px; }
+.d-body { font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--muted); }
+
+/* ══ PILOT ══ */
+.pilot-section { background: var(--ore); }
+.pilot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.pilot-quote { font-size: clamp(18px,2vw,24px); font-style: italic; line-height: 1.5; color: var(--parchment); border-left: 3px solid var(--gold); padding-left: 28px; margin: 28px 0; }
+.pilot-attr { font-family: var(--mono); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--copper); padding-left: 28px; }
+.pilot-body { font-size: 15.5px; line-height: 1.75; color: var(--muted-lt); margin-top: 24px; }
+.pilot-body strong { color: var(--copper-pale); font-weight: 400; }
+.pilot-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.ps-card { background: var(--onyx); padding: 28px 24px; position: relative; overflow: hidden; }
+.ps-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gold); }
+.ps-val { font-size: 44px; line-height: 1; letter-spacing: -.04em; color: var(--gold-lt); margin-bottom: 6px; }
+.ps-label { font-family: var(--mono); font-size: 9px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); line-height: 1.65; }
+.ps-sub { font-family: var(--mono); font-size: 10px; color: var(--copper-lt); margin-top: 6px; }
+
+/* ══ TEAM ══ */
+.team-section { background: var(--onyx); }
+.team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+.team-body { font-size: 16px; line-height: 1.75; color: var(--muted-lt); max-width: 480px; }
+.team-body strong { color: var(--copper-pale); font-weight: 400; }
+.team-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.team-badge { font-family: var(--mono); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; color: var(--copper); border: 1px solid rgba(201,168,76,.25); padding: 8px 16px; }
+.team-principles { display: flex; flex-direction: column; gap: 2px; }
+.tp-card { background: var(--ore); border-left: 3px solid var(--copper); padding: 20px 22px; transition: background .25s; }
+.tp-card:hover { background: var(--ore2); }
+.tp-card:nth-child(2) { border-left-color: var(--gold); }
+.tp-card:nth-child(3) { border-left-color: var(--steel-lt); }
+.tp-title { font-size: 16px; font-style: italic; color: var(--parchment); margin-bottom: 4px; }
+.tp-body { font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--muted); }
+
+/* ══ PROCESS ══ */
+.process-section { background: var(--charcoal); }
+.process-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; margin-top: 40px; }
+.step { background: var(--ore); padding: 32px 28px; position: relative; }
+.step::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(to right, var(--copper), var(--gold-lt)); }
+.step-num { font-family: var(--mono); font-size: 9px; letter-spacing: .3em; color: var(--copper); margin-bottom: 14px; text-transform: uppercase; }
+.step-time { font-family: var(--mono); font-size: 28px; color: var(--gold-lt); margin-bottom: 8px; letter-spacing: -.02em; }
+.step-title { font-size: 18px; font-style: italic; color: var(--parchment); margin-bottom: 8px; }
+.step-body { font-family: var(--mono); font-size: 11px; line-height: 1.6; color: var(--muted); }
+
+/* ══ CTA ══ */
+.cta-section { background: var(--onyx); text-align: center; padding: 100px 56px; position: relative; overflow: hidden; }
+.cta-section::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(201,168,76,.09) 0%, transparent 65%); }
+.cta-inner { position: relative; max-width: 760px; margin: 0 auto; }
+.cta-eyebrow { font-family: var(--mono); font-size: 9px; letter-spacing: .45em; text-transform: uppercase; color: var(--copper); margin-bottom: 24px; }
+.cta-h { font-size: clamp(36px,5vw,68px); line-height: 1.04; letter-spacing: -.03em; font-weight: 400; margin-bottom: 24px; }
+.cta-h em { color: var(--gold-lt); font-style: italic; }
+.cta-sub { font-size: 16px; line-height: 1.72; color: var(--muted-lt); margin-bottom: 40px; max-width: 520px; margin-left: auto; margin-right: auto; }
+.cta-actions { display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
+footer { background: var(--ore); border-top: 1px solid rgba(201,168,76,.12); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; }
+.footer-logo { display: flex; align-items: center; gap: 10px; }
+.footer-logo svg { width: 24px; height: 24px; opacity: .7; }
+.footer-copy { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+.footer-right { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .1em; }
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+.reveal.vis { opacity: 1; transform: translateY(0); }
+.rv1 { transition-delay: .1s; } .rv2 { transition-delay: .2s; } .rv3 { transition-delay: .3s; } .rv4 { transition-delay: .4s; }
+
+@media (max-width: 900px) {
+  nav { padding: 16px 20px; }
+  .nav-links, .nav-cta { display: none; }
+  section { padding: 60px 20px; }
+  .hero-inner { flex-direction: column; padding: 90px 20px 40px; }
+  .hero-map { width: 100%; min-height: 280px; }
+  .neural-grid, .problem-grid, .pilot-grid, .team-grid { grid-template-columns: 1fr; gap: 36px; }
+  .stats-band { grid-template-columns: 1fr 1fr; }
+  .deliver-grid, .process-steps { grid-template-columns: 1fr; }
+  .problem-cards, .pilot-stats { grid-template-columns: 1fr 1fr; }
+  footer { flex-direction: column; gap: 16px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="cur" id="cur"></div>
+<div class="cur-ring" id="curRing"></div>
+<div class="prog" id="prog"></div>
+
+<!-- ══ NAV ══ -->
+<nav id="nav">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 30 30" fill="none">
+        <circle cx="15" cy="15" r="13.5" stroke="#B07D45" stroke-width=".6" opacity=".5"/>
+        <polygon points="15,3.5 26,22 4,22" fill="none" stroke="#D4A05A" stroke-width="1.3" stroke-linejoin="round"/>
+        <polygon points="15,10 21.5,21 8.5,21" fill="rgba(176,125,69,.18)" stroke="#B07D45" stroke-width=".65"/>
+        <circle cx="15" cy="3.5" r="1.4" fill="#D4A05A"/>
+      </svg>
+    </div>
+    <div class="nav-logo-text">
+      <div class="name">Atlas</div>
+      <div class="sub">Mining Corp.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#problem">The Problem</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#pilot">Pilot Results</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <a href="#contact" class="nav-cta">Request Demo</a>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-topo">
+    <svg viewBox="0 0 1400 700" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="900" cy="420" rx="520" ry="280" fill="none" stroke="#B07D45" stroke-width=".6"/>
+      <ellipse cx="900" cy="420" rx="420" ry="210" fill="none" stroke="#B07D45" stroke-width=".6"/>
+      <ellipse cx="900" cy="420" rx="320" ry="148" fill="none" stroke="#B07D45" stroke-width=".5"/>
+      <ellipse cx="900" cy="420" rx="220" ry="95" fill="none" stroke="#B07D45" stroke-width=".5"/>
+      <ellipse cx="900" cy="420" rx="130" ry="55" fill="none" stroke="#C9A84C" stroke-width=".7"/>
+      <ellipse cx="900" cy="420" rx="60" ry="26" fill="none" stroke="#C9A84C" stroke-width=".8"/>
+      <ellipse cx="380" cy="280" rx="300" ry="190" fill="none" stroke="#B07D45" stroke-width=".4"/>
+      <ellipse cx="380" cy="280" rx="200" ry="120" fill="none" stroke="#B07D45" stroke-width=".4"/>
+      <ellipse cx="380" cy="280" rx="110" ry="65" fill="none" stroke="#B07D45" stroke-width=".5"/>
+    </svg>
+  </div>
+  <div class="hero-grid"></div>
+  <div class="hero-stripe"></div>
+
+  <div class="hero-inner">
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <div class="eyebrow-dot"></div>
+        <div class="eyebrow-line"></div>
+        <span class="eyebrow-text">The AI Geologist</span>
+      </div>
+      <h1 class="hero-h1">
+        Know where<br>
+        <span class="row2">gold is</span>
+        <span class="row3">before you drill.</span>
+      </h1>
+      <p class="hero-sub">
+        Atlas uses <strong>machine learning</strong> to predict the precise land squares most likely to contain gold — with a <strong>probability</strong>, an <strong>explanation</strong>, and a <strong>certainty score</strong> no human geologist can match.
+      </p>
+      <div class="hero-actions">
+        <a href="#pilot" class="btn-gold"><span>See Pilot Results</span><span class="arr">→</span></a>
+        <a href="#how" class="btn-ghost">How it works ↓</a>
+      </div>
+    </div>
+
+    <!-- HERO MAP VISUAL -->
+    <div class="hero-map">
+      <div class="map-canvas">
+        <svg id="heroSvg" viewBox="0 0 580 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#E8C96A" stop-opacity=".5"/>
+              <stop offset="100%" stop-color="#E8C96A" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="goldGlowSm" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#E8C96A" stop-opacity=".35"/>
+              <stop offset="100%" stop-color="#E8C96A" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <g opacity=".18">
+            <line x1="0" y1="60" x2="580" y2="60" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="0" y1="120" x2="580" y2="120" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="0" y1="180" x2="580" y2="180" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="0" y1="240" x2="580" y2="240" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="0" y1="300" x2="580" y2="300" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="0" y1="360" x2="580" y2="360" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="72" y1="0" x2="72" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="144" y1="0" x2="144" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="216" y1="0" x2="216" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="288" y1="0" x2="288" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="360" y1="0" x2="360" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="432" y1="0" x2="432" y2="420" stroke="#B07D45" stroke-width=".5"/>
+            <line x1="504" y1="0" x2="504" y2="420" stroke="#B07D45" stroke-width=".5"/>
+          </g>
+          <rect x="288" y="180" width="72" height="60" fill="#C9A84C" opacity=".22"/>
+          <rect x="360" y="180" width="72" height="60" fill="#C9A84C" opacity=".35"/>
+          <rect x="288" y="240" width="72" height="60" fill="#C9A84C" opacity=".3"/>
+          <rect x="360" y="240" width="72" height="60" fill="#C9A84C" opacity=".48"/>
+          <rect x="432" y="240" width="72" height="60" fill="#C9A84C" opacity=".18"/>
+          <rect x="360" y="300" width="72" height="60" fill="#C9A84C" opacity=".22"/>
+          <rect x="144" y="120" width="72" height="60" fill="#C9A84C" opacity=".15"/>
+          <rect x="144" y="180" width="72" height="60" fill="#C9A84C" opacity=".28"/>
+          <rect x="72" y="180" width="72" height="60" fill="#C9A84C" opacity=".12"/>
+          <ellipse cx="396" cy="255" rx="108" ry="72" fill="none" stroke="#C9A84C" stroke-width=".8" opacity=".3"/>
+          <ellipse cx="396" cy="255" rx="72" ry="48" fill="none" stroke="#C9A84C" stroke-width=".9" opacity=".4"/>
+          <ellipse cx="396" cy="255" rx="38" ry="25" fill="none" stroke="#C9A84C" stroke-width="1" opacity=".5"/>
+          <ellipse cx="180" cy="165" rx="64" ry="44" fill="none" stroke="#C9A84C" stroke-width=".7" opacity=".25"/>
+          <ellipse cx="180" cy="165" rx="36" ry="24" fill="none" stroke="#C9A84C" stroke-width=".8" opacity=".32"/>
+          <circle cx="396" cy="255" r="6" fill="#E8C96A" class="pulse-ring1" opacity=".7" fill-opacity="0" stroke="#E8C96A" stroke-width="1.5"/>
+          <circle cx="396" cy="255" r="6" fill="#E8C96A" class="pulse-ring2" opacity=".5" fill-opacity="0" stroke="#E8C96A" stroke-width="1"/>
+          <circle cx="396" cy="255" r="4.5" fill="#E8C96A" class="pulse-core"/>
+          <circle cx="180" cy="165" r="5" fill="#C9A84C" class="pulse-ring3" fill-opacity="0" stroke="#C9A84C" stroke-width="1.2" style="animation-delay:.5s"/>
+          <circle cx="180" cy="165" r="3.5" fill="#C9A84C" class="pulse-core-sm"/>
+          <circle cx="468" cy="210" r="4" fill="#C9A84C" fill-opacity="0" stroke="#C9A84C" stroke-width="1" class="pulse-ring3" style="animation-delay:1.1s"/>
+          <circle cx="468" cy="210" r="3" fill="#C9A84C" class="pulse-core-sm" style="animation-delay:.4s"/>
+          <circle cx="324" cy="315" r="3.5" fill="#B07D45" fill-opacity="0" stroke="#B07D45" stroke-width=".8" class="pulse-ring3" style="animation-delay:1.7s"/>
+          <circle cx="324" cy="315" r="2.5" fill="#B07D45" class="pulse-core-sm" style="animation-delay:.9s"/>
+          <circle cx="396" cy="255" r="40" fill="url(#goldGlow)"/>
+          <circle cx="180" cy="165" r="26" fill="url(#goldGlowSm)"/>
+          <line x1="388" y1="255" x2="404" y2="255" stroke="rgba(232,201,106,.35)" stroke-width=".6"/>
+          <line x1="396" y1="247" x2="396" y2="263" stroke="rgba(232,201,106,.35)" stroke-width=".6"/>
+          <rect x="0" y="0" width="162" height="22" fill="rgba(11,11,9,.7)"/>
+          <text x="10" y="14.5" font-family="'Courier Prime'" font-size="8" fill="#7A95AA" letter-spacing="1.5">AI PROBABILITY MAP — 300×300m GRID</text>
+          <line x1="18" y1="400" x2="90" y2="400" stroke="#7A786F" stroke-width=".75"/>
+          <line x1="18" y1="396" x2="18" y2="404" stroke="#7A786F" stroke-width=".75"/>
+          <line x1="90" y1="396" x2="90" y2="404" stroke="#7A786F" stroke-width=".75"/>
+          <text x="26" y="414" font-family="'Courier Prime'" font-size="8" fill="#7A786F">500 m</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-ticker">
+    <div class="ticker-label">Model Output</div>
+    <div class="ticker-track" id="ticker">
+      <span class="ticker-item"><span class="v">$12.5B</span>Industry exploration spend — 0.5% success rate</span>
+      <span class="ticker-item"><span class="v">15/15</span>Perfect pilot score — zero false positives</span>
+      <span class="ticker-item"><span class="v">~75%</span>AI-driven drill success vs 0.5% industry avg</span>
+      <span class="ticker-item"><span class="v">&lt;48h</span>Full probability map from data intake</span>
+      <span class="ticker-item"><span class="v">68%</span>Reduction in unproductive drill sites</span>
+      <span class="ticker-item"><span class="v">$218M</span>Average cost to discover one deposit</span>
+      <span class="ticker-item"><span class="v">$12.5B</span>Industry exploration spend — 0.5% success rate</span>
+      <span class="ticker-item"><span class="v">15/15</span>Perfect pilot score — zero false positives</span>
+      <span class="ticker-item"><span class="v">~75%</span>AI-driven drill success vs 0.5% industry avg</span>
+      <span class="ticker-item"><span class="v">&lt;48h</span>Full probability map from data intake</span>
+      <span class="ticker-item"><span class="v">68%</span>Reduction in unproductive drill sites</span>
+      <span class="ticker-item"><span class="v">$218M</span>Average cost to discover one deposit</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS BAND ══ -->
+<div class="stats-band">
+  <div class="stat reveal">
+    <div class="stat-num">15<sup>/15</sup></div>
+    <div class="stat-label">Perfect pilot score<br>zero false positives</div>
+  </div>
+  <div class="stat reveal rv1">
+    <div class="stat-num">~75<sup>%</sup></div>
+    <div class="stat-label">AI-driven drill<br>success rate</div>
+  </div>
+  <div class="stat reveal rv2">
+    <div class="stat-num">&lt;48<sup>h</sup></div>
+    <div class="stat-label">Full probability map<br>from data intake</div>
+  </div>
+  <div class="stat reveal rv3">
+    <div class="stat-num">68<sup>%</sup></div>
+    <div class="stat-label">Reduction in dry<br>drill sites (pilot)</div>
+  </div>
+</div>
+
+<!-- ══ THE PROBLEM ══ -->
+<section class="problem-section" id="problem">
+  <div class="sec-inner">
+    <div class="problem-grid">
+      <div>
+        <div class="sec-tag reveal">The Problem</div>
+        <h2 class="sec-h reveal">Billions spent.<br><em>Almost nothing</em> found.</h2>
+        <p class="problem-body reveal" style="margin-bottom:24px">
+          The mining industry spent <strong>$12.5 billion</strong> on exploration in 2024. The average cost to discover a single new deposit has <strong>tripled to $218M</strong>. Companies spend a decade securing permits and millions on baselines — only to drill and find nothing.
+        </p>
+        <p class="problem-body reveal">
+          Modern exploration generates <strong>terabytes</strong> of data per site — satellite imagery, geochemical assays, magnetic surveys, drill logs. But that data sits in silos while decisions are made by intuition. AI-driven targeting has pushed drill success rates from <strong>0.5% to approximately 75%</strong> in early deployments.
+        </p>
+      </div>
+      <div class="reveal rv1">
+        <div class="problem-cards">
+          <div class="p-card">
+            <div class="pc-val">7–10 yrs</div>
+            <div class="pc-label">US permit<br>timeline</div>
+          </div>
+          <div class="p-card">
+            <div class="pc-val">2–3 yrs</div>
+            <div class="pc-label">Canadian permit<br>timeline</div>
+          </div>
+          <div class="p-card">
+            <div class="pc-val">1–2 yrs</div>
+            <div class="pc-label">Australian permit<br>timeline</div>
+          </div>
+          <div class="p-card">
+            <div class="pc-val">TB+</div>
+            <div class="pc-label">Data per site<br>sitting unused</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="neural-section" id="how">
+  <div class="sec-inner">
+    <div class="neural-grid">
+      <div class="neural-left">
+        <div class="sec-tag reveal">How It Works</div>
+        <h2 class="sec-h reveal">A neural network<br>trained to find <em>gold.</em></h2>
+        <p class="neural-body reveal" style="margin-bottom:16px">
+          Our model ingests every available signal — <strong>geophysics, geochemistry, remote sensing, structural geology, drill logs</strong> — and fuses them into a unified geological intelligence layer. It trains from as few as <strong>3,000 labeled examples</strong> and works even when <strong>20% of data layers</strong> are missing.
+        </p>
+        <div class="output-cards reveal">
+          <div class="output-card">
+            <div class="oc-num">01 — PROBABILITY</div>
+            <div class="oc-title">How likely is gold here?</div>
+            <div class="oc-body">A 0–100% probability score for each grid cell. Ranked and mapped before a single drill turns.</div>
+          </div>
+          <div class="output-card">
+            <div class="oc-num">02 — EXPLANATION</div>
+            <div class="oc-title">Why does the model say so?</div>
+            <div class="oc-body">Top geological drivers per prediction — anomaly signatures, structural controls, geochemical patterns. Fully auditable.</div>
+          </div>
+          <div class="output-card">
+            <div class="oc-num">03 — CERTAINTY</div>
+            <div class="oc-title">How confident is the model?</div>
+            <div class="oc-body">Calibrated uncertainty range. High-confidence targets flagged for immediate drilling; lower zones for more data.</div>
+          </div>
+        </div>
+      </div>
+      <div class="neural-canvas reveal">
+        <canvas id="neuralCanvas" width="520" height="520"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DELIVERABLES ══ -->
+<section class="deliver-section">
+  <div class="sec-inner">
+    <div class="sec-tag reveal">What You Obtain</div>
+    <h2 class="sec-h reveal">Six outputs per <em>analysis.</em></h2>
+    <div class="deliver-grid">
+      <div class="d-card reveal">
+        <div class="d-icon">01</div>
+        <div class="d-title">Location</div>
+        <div class="d-body">Outlined polygon, 1–9 km² area — precise target zones mapped on your land package.</div>
+      </div>
+      <div class="d-card reveal rv1">
+        <div class="d-icon">02</div>
+        <div class="d-title">Probability</div>
+        <div class="d-body">Estimated likelihood of metal presence. Scores up to 0.98 in pilot testing.</div>
+      </div>
+      <div class="d-card reveal rv2">
+        <div class="d-icon">03</div>
+        <div class="d-title">Certainty</div>
+        <div class="d-body">Model confidence in its prediction — calibrated uncertainty bands for each target.</div>
+      </div>
+      <div class="d-card reveal rv3">
+        <div class="d-icon">04</div>
+        <div class="d-title">Quantity</div>
+        <div class="d-body">Forecasted resource estimate to help prioritise capital allocation across targets.</div>
+      </div>
+      <div class="d-card reveal">
+        <div class="d-icon">05</div>
+        <div class="d-title">Depth</div>
+        <div class="d-body">Estimated depth of mineralisation — plan your drilling program with precision.</div>
+      </div>
+      <div class="d-card reveal rv1">
+        <div class="d-icon">06</div>
+        <div class="d-title">Resources</div>
+        <div class="d-body">Classification as deposit, occurrence, or mineralisation point for regulatory planning.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PILOT RESULTS ══ -->
+<section class="pilot-section" id="pilot">
+  <div class="sec-inner">
+    <div class="pilot-grid">
+      <div>
+        <div class="sec-tag reveal">Pilot Study</div>
+        <h2 class="sec-h reveal">The model found<br>what years of<br><em>geology missed.</em></h2>
+        <blockquote class="pilot-quote reveal">
+          "Atlas identified high-probability targets our team had overlooked for three years. Two of the first three drill holes intersected high-grade mineralisation."
+        </blockquote>
+        <div class="pilot-attr reveal">Chief Geologist — Pilot Partner</div>
+        <p class="pilot-body reveal">
+          Conducted with one of the world's largest gold miners — a <strong>30,000+ employee</strong> company with decades of history on a mature, multi-kilometre prospect. We ran the model cold. In under <strong>48 hours</strong> we returned a complete probability map. Their drill programme confirmed every target.
+        </p>
+      </div>
+      <div class="reveal rv1">
+        <div class="pilot-stats">
+          <div class="ps-card">
+            <div class="ps-val">15/15</div>
+            <div class="ps-label">Perfect pilot score</div>
+            <div class="ps-sub">Every top-tier target confirmed</div>
+          </div>
+          <div class="ps-card">
+            <div class="ps-val">68%</div>
+            <div class="ps-label">Fewer dry sites</div>
+            <div class="ps-sub">vs. prior programme same territory</div>
+          </div>
+          <div class="ps-card">
+            <div class="ps-val">&lt;48h</div>
+            <div class="ps-label">Map delivery</div>
+            <div class="ps-sub">Raw data to full probability map</div>
+          </div>
+          <div class="ps-card">
+            <div class="ps-val">0.98</div>
+            <div class="ps-label">Peak probability</div>
+            <div class="ps-sub">Highest-confidence target score</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TEAM ══ -->
+<section class="team-section" id="team">
+  <div class="sec-inner">
+    <div class="team-grid">
+      <div>
+        <div class="sec-tag reveal">The Team</div>
+        <h2 class="sec-h reveal">Caltech & Polytechnique<br><em>trained.</em> Production proven.</h2>
+        <p class="team-body reveal">
+          Core ML team trained at <strong>Caltech</strong> and <strong>Ecole Polytechnique</strong> — with expertise across machine learning, computational geoscience, and applied mathematics. Our AI systems have been deployed to <strong>industrial scale</strong> for major clients across healthcare, infrastructure, and resource extraction.
+        </p>
+        <div class="team-badges reveal">
+          <span class="team-badge">ML Engineering</span>
+          <span class="team-badge">Geospatial AI</span>
+          <span class="team-badge">Deep Neural Networks</span>
+          <span class="team-badge">Mineral Systems</span>
+          <span class="team-badge">Production MLOps</span>
+          <span class="team-badge">Sensor Fusion</span>
+        </div>
+      </div>
+      <div class="team-principles reveal rv1">
+        <div class="tp-card">
+          <div class="tp-title">Interpretable models</div>
+          <div class="tp-body">Every prediction ships with confidence bounds, data provenance, and plain-language rationale. Auditable by your geologists.</div>
+        </div>
+        <div class="tp-card">
+          <div class="tp-title">Reproducible science</div>
+          <div class="tp-body">Grounded in peer-reviewed ML research. Every model run is deterministic, documented, and independently verifiable.</div>
+        </div>
+        <div class="tp-card">
+          <div class="tp-title">Production-grade systems</div>
+          <div class="tp-body">Not a research prototype. Hardened pipelines, automated ingestion, and enterprise-ready delivery from day one.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PROCESS ══ -->
+<section class="process-section">
+  <div class="sec-inner">
+    <div class="sec-tag reveal">Get Started</div>
+    <h2 class="sec-h reveal">Probability map in <em>one week.</em></h2>
+    <div class="process-steps">
+      <div class="step reveal">
+        <div class="step-num">Step 01</div>
+        <div class="step-time">24h</div>
+        <div class="step-title">Scoping Phase</div>
+        <div class="step-body">Technical assessment. Evaluate your data, define targets, confirm feasibility. No commitment required.</div>
+      </div>
+      <div class="step reveal rv1">
+        <div class="step-num">Step 02</div>
+        <div class="step-time">72h</div>
+        <div class="step-title">Data Intake</div>
+        <div class="step-body">Satellite, geochemical, geophysical data processed through our ingestion pipeline. Any format accepted.</div>
+      </div>
+      <div class="step reveal rv2">
+        <div class="step-num">Step 03</div>
+        <div class="step-time">&lt;48h</div>
+        <div class="step-title">First Map Delivery</div>
+        <div class="step-body">Full probability map with target polygons ranked by likelihood, confidence, and estimated depth.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ══ -->
+<section class="cta-section" id="contact">
+  <div class="cta-inner">
+    <div class="cta-eyebrow reveal">Your gold is already in your data</div>
+    <h2 class="cta-h reveal">We just need to<br>show you <em>where.</em></h2>
+    <p class="cta-sub reveal">Stop spending $218M per discovery. Get a probability map of your entire land package in under a week.</p>
+    <div class="cta-actions reveal">
+      <a href="mailto:hello@atlasmining.org" class="btn-gold"><span>Start Free Assessment</span><span class="arr">→</span></a>
+      <a href="mailto:hello@atlasmining.org" class="btn-ghost">hello@atlasmining.org</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10.5" stroke="#B07D45" stroke-width=".6"/>
+      <polygon points="12,3 21,18 3,18" fill="none" stroke="#D4A05A" stroke-width="1.2" stroke-linejoin="round"/>
+      <polygon points="12,8 17,16 7,16" fill="rgba(176,125,69,.18)" stroke="#B07D45" stroke-width=".55"/>
+      <circle cx="12" cy="3" r="1" fill="#D4A05A"/>
+    </svg>
+    <span class="footer-copy">© 2026 Atlas Mining Corp. — The AI Geologist</span>
+  </div>
+  <div class="footer-right">Extracting Tomorrow</div>
+</footer>
+
+<script>
+// ── CURSOR ──
+const cur = document.getElementById('cur'), ring = document.getElementById('curRing');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+(function ani(){ cur.style.left=mx+'px'; cur.style.top=my+'px'; rx+=(mx-rx)*.1; ry+=(my-ry)*.1; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(ani); })();
+
+// ── SCROLL ──
+const nav = document.getElementById('nav'), prog = document.getElementById('prog');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', scrollY > 50);
+  prog.style.width = (scrollY/(document.body.scrollHeight-innerHeight)*100)+'%';
+});
+
+// ── REVEAL ──
+const io = new IntersectionObserver(ents => ents.forEach(e => e.isIntersecting && e.target.classList.add('vis')), {threshold:.1, rootMargin:'0px 0px -36px 0px'});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+// ══ NEURAL NET CANVAS ══
+const nc = document.getElementById('neuralCanvas');
+const ctx2 = nc.getContext('2d');
+nc.width = 520; nc.height = 520;
+
+const layers = [
+  { nodes: 6, label: 'Input', sublabels: ['Geophysics','Geochemistry','Remote Sensing','Topography','Drill Logs','Structural'], x: 80 },
+  { nodes: 8, label: 'Hidden 1', x: 200 },
+  { nodes: 8, label: 'Hidden 2', x: 320 },
+  { nodes: 5, label: 'Hidden 3', x: 420 },
+  { nodes: 3, label: 'Output', sublabels: ['Probability','Explanation','Certainty'], x: 490 },
+];
+
+function nodeY(layerNodes, nodeIdx, canvasH) {
+  const spacing = Math.min(70, (canvasH - 60) / layerNodes);
+  const total = spacing * (layerNodes - 1);
+  return (canvasH - total) / 2 + nodeIdx * spacing;
+}
+
+let nnT = 0;
+const signals = [];
+for(let l=0;l<layers.length-1;l++){
+  for(let i=0;i<layers[l].nodes;i++){
+    for(let j=0;j<layers[l+1].nodes;j++){
+      if(Math.random()<0.55) signals.push({l,i,j,t:Math.random(),speed:0.004+Math.random()*.006});
+    }
+  }
+}
+
+function drawNN(t) {
+  ctx2.clearRect(0,0,520,520);
+  const H=520;
+  layers.forEach((layer,li)=>{
+    if(li===layers.length-1) return;
+    const next=layers[li+1];
+    for(let i=0;i<layer.nodes;i++){
+      for(let j=0;j<next.nodes;j++){
+        const x1=layer.x, y1=nodeY(layer.nodes,i,H), x2=next.x, y2=nodeY(next.nodes,j,H);
+        ctx2.beginPath(); ctx2.moveTo(x1,y1); ctx2.lineTo(x2,y2);
+        ctx2.strokeStyle='rgba(176,125,69,0.12)'; ctx2.lineWidth=0.6; ctx2.stroke();
+      }
+    }
+  });
+  signals.forEach(s=>{
+    s.t = (s.t + s.speed) % 1;
+    const l=layers[s.l], nl=layers[s.l+1];
+    const x1=l.x, y1=nodeY(l.nodes,s.i,H), x2=nl.x, y2=nodeY(nl.nodes,s.j,H);
+    const px=x1+(x2-x1)*s.t, py=y1+(y2-y1)*s.t;
+    const alpha = s.t < 0.1 ? s.t*10 : s.t > 0.9 ? (1-s.t)*10 : 1;
+    const isGold = s.l === layers.length-2;
+    const col = isGold ? `rgba(232,201,106,${alpha*0.95})` : `rgba(201,168,76,${alpha*0.7})`;
+    ctx2.beginPath(); ctx2.arc(px,py,isGold?3:2.2,0,Math.PI*2);
+    ctx2.fillStyle=col; ctx2.fill();
+    if(isGold){ ctx2.beginPath(); ctx2.arc(px,py,6,0,Math.PI*2); ctx2.fillStyle=`rgba(232,201,106,${alpha*0.2})`; ctx2.fill(); }
+  });
+  layers.forEach((layer,li)=>{
+    const isInput = li===0, isOutput = li===layers.length-1;
+    for(let i=0;i<layer.nodes;i++){
+      const x=layer.x, y=nodeY(layer.nodes,i,H);
+      const pulse = 0.5+0.5*Math.sin(t*2.5+li*1.1+i*0.8);
+      const r = isInput ? 9 : isOutput ? 11 : 8;
+      const grd = ctx2.createRadialGradient(x,y,0,x,y,r*2.5);
+      if(isOutput){ grd.addColorStop(0,'rgba(232,201,106,'+(0.25*pulse)+')'); grd.addColorStop(1,'transparent'); }
+      else { grd.addColorStop(0,'rgba(176,125,69,'+(0.15*pulse)+')'); grd.addColorStop(1,'transparent'); }
+      ctx2.beginPath(); ctx2.arc(x,y,r*2.5,0,Math.PI*2); ctx2.fillStyle=grd; ctx2.fill();
+      ctx2.beginPath(); ctx2.arc(x,y,r,0,Math.PI*2);
+      if(isOutput){ ctx2.strokeStyle=`rgba(232,201,106,${0.6+0.4*pulse})`; ctx2.lineWidth=1.4; }
+      else if(isInput){ ctx2.strokeStyle='rgba(122,149,170,0.6)'; ctx2.lineWidth=1.2; }
+      else { ctx2.strokeStyle=`rgba(176,125,69,${0.4+0.3*pulse})`; ctx2.lineWidth=1; }
+      ctx2.stroke();
+      ctx2.beginPath(); ctx2.arc(x,y,r-1.5,0,Math.PI*2);
+      if(isOutput) ctx2.fillStyle=`rgba(201,168,76,${0.3+0.2*pulse})`;
+      else ctx2.fillStyle='rgba(30,30,27,0.9)';
+      ctx2.fill();
+    }
+    ctx2.font='bold 9px "Courier Prime"';
+    ctx2.fillStyle='rgba(176,125,69,0.7)';
+    ctx2.textAlign='center';
+    ctx2.fillText(layer.label.toUpperCase(), layer.x, H-10);
+    if(layer.sublabels){
+      ctx2.font='9px "Courier Prime"';
+      ctx2.fillStyle='rgba(160,157,149,0.65)';
+      layer.sublabels.forEach((lbl,i)=>{
+        const y=nodeY(layer.nodes,i,H);
+        const xOff = isInput ? -14 : 14;
+        ctx2.textAlign = isInput ? 'right' : 'left';
+        ctx2.fillText(lbl, layer.x+xOff, y+3.5);
+      });
+    }
+  });
+  nnT += 0.018;
+  requestAnimationFrame(()=>drawNN(nnT));
+}
+drawNN(0);
+</script>
+</body>
+</html>
