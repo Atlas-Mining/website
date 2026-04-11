@@ -280,6 +280,17 @@ section { padding: 90px 56px; }
 .cta-h em { color: var(--gold-lt); font-style: italic; }
 .cta-sub { font-size: 16px; line-height: 1.72; color: var(--muted-lt); margin-bottom: 40px; max-width: 520px; margin-left: auto; margin-right: auto; }
 .cta-actions { display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.contact-form { max-width: 560px; margin: 0 auto; text-align: left; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-group { display: flex; flex-direction: column; margin-bottom: 0; }
+.form-group:last-child:not(.form-row .form-group) { margin-bottom: 24px; }
+.contact-form > .form-group { margin-bottom: 24px; }
+.contact-form label { font-family: var(--mono); font-size: 9px; letter-spacing: .25em; text-transform: uppercase; color: var(--copper); margin-bottom: 8px; }
+.contact-form input, .contact-form textarea { background: var(--ore); border: 1px solid rgba(201,168,76,.2); color: var(--parchment); font-family: var(--mono); font-size: 13px; padding: 12px 16px; outline: none; transition: border-color .25s; }
+.contact-form input::placeholder, .contact-form textarea::placeholder { color: var(--muted); }
+.contact-form input:focus, .contact-form textarea:focus { border-color: var(--gold); }
+.contact-form textarea { resize: vertical; min-height: 100px; }
+.contact-form .btn-gold { width: 100%; justify-content: center; border: none; cursor: pointer; font-size: 11px; }
 
 footer { background: var(--ore); border-top: 1px solid rgba(201,168,76,.12); padding: 36px 56px; display: flex; justify-content: space-between; align-items: center; }
 .footer-logo { display: flex; align-items: center; gap: 10px; }
@@ -302,6 +313,7 @@ footer { background: var(--ore); border-top: 1px solid rgba(201,168,76,.12); pad
   .stats-band { grid-template-columns: 1fr 1fr; }
   .deliver-grid, .process-steps { grid-template-columns: 1fr; }
   .problem-cards, .pilot-stats { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 16px; text-align: center; }
 }
 </style>
@@ -648,10 +660,33 @@ footer { background: var(--ore); border-top: 1px solid rgba(201,168,76,.12); pad
     <div class="cta-eyebrow reveal">Your gold is already in your data</div>
     <h2 class="cta-h reveal">We just need to<br>show you <em>where.</em></h2>
     <p class="cta-sub reveal">Stop spending $218M per discovery. Get a probability map of your entire land package in under a month.</p>
-    <div class="cta-actions reveal">
-      <a href="mailto:hello@atlasmining.org" class="btn-gold"><span>Get Started</span><span class="arr">→</span></a>
-      <a href="mailto:hello@atlasmining.org" class="btn-ghost">hello@atlasmining.org</a>
-    </div>
+    <form class="contact-form reveal" action="https://formspree.io/f/xnjoeyoe" method="POST">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required placeholder="Your name">
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="you@company.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="company">Company</label>
+          <input type="text" id="company" name="company" placeholder="Company name">
+        </div>
+        <div class="form-group">
+          <label for="role">Role</label>
+          <input type="text" id="role" name="role" placeholder="Your role">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="4" placeholder="Tell us about your exploration project..."></textarea>
+      </div>
+      <button type="submit" class="btn-gold"><span>Get Started</span><span class="arr">→</span></button>
+    </form>
   </div>
 </section>
 </main>
